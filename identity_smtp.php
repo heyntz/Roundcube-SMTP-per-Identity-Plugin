@@ -67,23 +67,30 @@ class identity_smtp extends rcube_plugin
 
         $password = rcube_utils::get_input_value('_smtp_pass', rcube_utils::INPUT_POST, true);
         $password2 = rcube_utils::get_input_value('_smtp_pass2', rcube_utils::INPUT_POST, true);
-
-        if ($password != $password2) {
-            $args['abort'] = true;
-            $args['result'] = false;
-            $args['message'] = $this->gettext('smtp_passwords_mismatch');
-            return $args;
-        }
-
-        if ($password != $identities[$id]['smtp_pass']) {
-            $password = rcmail::get_instance()->encrypt($password);
+        $use_imap_login = rcube_utils::get_input_value('_smtp_use_imap_login', rcube_utils::INPUT_POST);
+    
+        if (!$use_imap_login) {
+            if ($password != $password2) {
+                $args['abort'] = true;
+                $args['result'] = false;
+                $args['message'] = $this->gettext('smtp_passwords_mismatch');
+        
+                return $args;
+            }
+    
+            if ($password != $identities[$id]['smtp_pass']) {
+                $password = rcmail::get_instance()->encrypt($password);
+            }
+        } else {
+            $password = '';
         }
 
         $smtpSettingsRecord = array(
             'smtp_standard' => isset($smtp_standard),
             'smtp_server' => rcube_utils::get_input_value('_smtp_server', rcube_utils::INPUT_POST),
             'smtp_port' => rcube_utils::get_input_value('_smtp_port', rcube_utils::INPUT_POST),
-            'smtp_user' => rcube_utils::get_input_value('_smtp_user', rcube_utils::INPUT_POST),
+            'smtp_user' => $use_imap_login ? '' : rcube_utils::get_input_value('_smtp_user', rcube_utils::INPUT_POST),
+            'smtp_use_imap_login' => $use_imap_login ? 1 : 0,
             'smtp_pass' => $password
         );
 
@@ -108,7 +115,9 @@ class identity_smtp extends rcube_plugin
             'smtp_port' => $smtpSettings[$id]['smtp_port'],
             'smtp_user' => $smtpSettings[$id]['smtp_user'],
             'smtp_pass' => $smtpSettings[$id]['smtp_pass'],
-            'smtp_pass2' => $smtpSettings[$id]['smtp_pass']
+            'smtp_pass2' => $smtpSettings[$id]['smtp_pass'],
+            'smtp_use_imap_login' => $smtpSettings[$id]['smtp_use_imap_login'],
+            
         );
 
         if (is_null($smtpSettingsRecord['smtp_standard'])) {
@@ -160,31 +169,43 @@ class identity_smtp extends rcube_plugin
                             'label' => $this->gettext('smtp_port'),
                             'class' => 'identity_smtp_form'
                         ),
+                        'smtp_use_imap_login' => array(
+                            'type' => 'checkbox',
+                            'label' => $this->gettext('use_imap_login'),
+                            'class' => 'identity_smtp_form',
+                            'onclick' => 'identity_smtp_toggle_imap_login()'
+                        ),
                         'smtp_user' => array(
                             'type' => 'text',
                             'label' => $this->gettext('smtp_user'),
-                            'class' => 'identity_smtp_form',
+                            'class' => 'identity_smtp_form_userpass',
                             'size' => 40
                         ),
                         'smtp_pass' => array(
                             'type' => 'password',
                             'label' => $this->gettext('smtp_pass'),
-                            'class' => 'identity_smtp_form',
+                            'class' => 'identity_smtp_form_userpass',
                             'size' => 40
                         ),
                         'smtp_pass2' => array(
                             'type' => 'password',
                             'label' => $this->gettext('smtp_pass2'),
-                            'class' => 'identity_smtp_form',
-                            'placeholder' => 'test',
+                            'class' => 'identity_smtp_form_userpass',
                             'size' => 40
                         )
                     )
                 )
             );
             if ($smtpSettingsRecord['smtp_standard'] || is_null($smtpSettingsRecord['smtp_standard'])) {
-                foreach ($smtpSettingsForm['smtpSettings']['content'] as &$input) {
-                    if ($input['type'] != 'checkbox') {
+                foreach ($smtpSettingsForm['smtpSettings']['content'] as $name => &$input) {
+                    if ($name != 'smtp_standard') {
+                        $input['disabled'] = 'disabled';
+                    }
+                }
+                
+            } elseif ($smtpSettingsRecord['smtp_use_imap_login'] || is_null($smtpSettingsRecord['smtp_use_imap_login'])) {
+                foreach ($smtpSettingsForm['smtpSettings']['content'] as $name => &$input) {
+                    if ($input['class'] == 'identity_smtp_form_userpass') {
                         $input['disabled'] = 'disabled';
                     }
                 }
@@ -246,11 +267,11 @@ class identity_smtp extends rcube_plugin
         ));
         if (!$smtpSettings['smtp_standard'] && !is_null($smtpSettings['smtp_standard'])) {
             $args['smtp_server'] = $smtpSettings['smtp_server'];
-            $args['smtp_port']   = $smtpSettings['smtp_port'];
-            $args['smtp_user']   = $smtpSettings['smtp_user'];
-            $args['smtp_pass']   = rcmail::get_instance()->decrypt($smtpSettings['smtp_pass']);
+            $args['smtp_port']  = $smtpSettings['smtp_port'];
+            $args['smtp_user'] = $smtpSettings['smtp_use_imap_login'] ? '%u' : $smtpSettings['smtp_user'];
+            $args['smtp_pass'] = $smtpSettings['smtp_use_imap_login'] ? '%p' : rcmail::get_instance()->decrypt($smtpSettings['smtp_pass']);
         }
         return $args;
     }
 }
-?>
+

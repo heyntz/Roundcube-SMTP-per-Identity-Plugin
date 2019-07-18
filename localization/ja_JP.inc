@@ -10,5 +10,5 @@ $labels['smtp_pass'] = 'パスワード';
 $labels['smtp_pass2'] = 'パスワード再入力';
 $labels['smtp_settings_not_available'] = 'SMTP設定を編集するには最初に保存してください。';
 $labels['smtp_passwords_mismatch'] = 'パスワードが一致していません';
+$labels['use_imap_login'] = 'IMAPログインデータを使用する';
 
-?>

@@ -10,5 +10,7 @@ $labels['smtp_pass'] = 'Contrassenya';
 $labels['smtp_pass2'] = 'Repeteix la contrassenya';
 $labels['smtp_settings_not_available'] = "Cal emmagatzemar primer, per a poder configurar l'accés SMTP.";
 $labels['smtp_passwords_mismatch'] = 'Les contrasenyes no coincideixen';
+$labels['use_imap_login'] = 'utilizar los datos de inicio de sesión de imap';
 
-?>
+
+
